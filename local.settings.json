@@ -1,0 +1,8 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=ftsdevdestinationst;AccountKey=8KOeKxfqd4DKLWFsSvwC/QfGMDKXpRuJqpx24OadEk6J91xZLvyxxx81gv0MCnKVVwehygKRAx7V+AStQCqpBw==;EndpointSuffix=core.usgovcloudapi.net",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "uploadstorage_conn": "DefaultEndpointsProtocol=https;AccountName=ftsdevuploadst;AccountKey=V/eRq6U3vP8WhX8Wk1mob8aBS5Hq8EZxdQGbfHKo6gwu9HKUycabWz6oZHtSr7FAuvHuxMLuWQs0+AStOhg2aQ==;EndpointSuffix=core.usgovcloudapi.net"
+  }
+}
