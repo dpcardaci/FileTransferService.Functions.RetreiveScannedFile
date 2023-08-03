@@ -9,8 +9,8 @@ namespace FileTransferService.Functions
     public class RetreiveScannedFile
     {
         [FunctionName("RetreiveScannedFile")]
-        public async Task Run([BlobTrigger("%cleanfiles_container%/{name}", 
-                        Connection = "uploadstorage_conn")] Stream myBlob, 
+        public async Task Run([BlobTrigger("%UploadCleanFilesContainerName%/{name}", 
+                        Connection = "UploadStorageAccountConnectionString")] Stream myBlob, 
                         string name, 
                         [DurableClient] IDurableOrchestrationClient orchestrationClient,
                         ILogger log)

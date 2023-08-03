@@ -6,25 +6,32 @@ using Microsoft.Extensions.Logging;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace FileTransferService.Functions
 {
     public class ProcessCleanFile
     {
 
+        private readonly IConfiguration _configuration;
+        public ProcessCleanFile(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         [FunctionName("ProcessCleanFile")]
         public void Run([ActivityTrigger] string blobName, ILogger log) 
         {
             string baseStoragePath = "blob.core.usgovcloudapi.net";
 
-            string destAccountName = Environment.GetEnvironmentVariable("destinationstorage_name");
-            string destAccountSas = Environment.GetEnvironmentVariable("destinationstorage_sas");
-            string destContainer = Environment.GetEnvironmentVariable("default_container");
+            string destAccountName = _configuration["RetrieveStorageAccountName"];
+            string destAccountSas = _configuration["RetrieveStorageAccountSasToken"];
+            string destContainer = _configuration["RetrieveDefaultContainerName"];
 
-            string srcAccountName = Environment.GetEnvironmentVariable("uploadstorage_name");
-            string srcAccountSas = Environment.GetEnvironmentVariable("uploadstorage_sas");
-            string srcContainer = Environment.GetEnvironmentVariable("cleanfiles_container");
-            string srcContainerSas = Environment.GetEnvironmentVariable("cleanfiles_container_sas");
+            string srcAccountName = _configuration["UploadStorageAccountName"];
+            string srcAccountSas = _configuration["UploadStorageAccountSasToken"];
+            string srcContainer = _configuration["UploadCleanFilesContainerName"];
+            string srcContainerSas = _configuration["UploadCleanFilesContainerSasToken"];
 
             int destBlobNameStartIndex = 37;
             string destBlobName = blobName.Substring(destBlobNameStartIndex);
