@@ -7,6 +7,8 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
+using Castle.Components.DictionaryAdapter;
+using System.Collections.Generic;
 
 namespace FileTransferService.Functions
 {
@@ -36,21 +38,39 @@ namespace FileTransferService.Functions
             int destBlobNameStartIndex = 37;
             string destBlobName = blobName.Substring(destBlobNameStartIndex);
 
-            string destPath = $"https://{destAccountName}.{baseStoragePath}/{destContainer}/{destBlobName}";
             string srcPath = $"https://{srcAccountName}.{baseStoragePath}/{srcContainer}/{blobName}";
 
-            Uri destUri = new Uri(destPath);
             Uri srcUri = new Uri(srcPath);
             Uri srcUriWithSas = new Uri($"{srcPath}?{srcContainerSas}");
 
             AzureSasCredential destCredential = new AzureSasCredential(destAccountSas);
             AzureSasCredential srcCredential = new AzureSasCredential(srcAccountSas);
 
+            BlobClient srcClient = new BlobClient(srcUri, srcCredential);
+            var metadata = srcClient.GetProperties().Value.Metadata;
+
+            string destBasePath = $"https://{destAccountName}.{baseStoragePath}";
+
+            if(metadata != null)
+            {
+                if(!String.IsNullOrEmpty(metadata["userprincipalname"]))
+                {
+                    destContainer = metadata["userprincipalname"];
+                    BlobContainerClient destContainerClient = new BlobContainerClient(
+                        new Uri($"{destBasePath}/{destContainer}"),
+                        destCredential
+                    );
+                    destContainerClient.CreateIfNotExists();
+                }
+            }
+
+            string destPath = $"{destBasePath}/{destContainer}/{destBlobName}";
+            Uri destUri = new Uri(destPath);
+
             BlobClient destClient = new BlobClient(destUri, destCredential);
             CopyFromUriOperation copyFromUriOperation = destClient.StartCopyFromUri(srcUriWithSas);
             copyFromUriOperation.WaitForCompletion();
-
-            BlobClient srcClient = new BlobClient(srcUri, srcCredential);
+  
             srcClient.Delete();
 
         }
