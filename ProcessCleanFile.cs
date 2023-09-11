@@ -4,11 +4,16 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.DurableTask;
 using Microsoft.Extensions.Logging;
 using Azure;
+using Azure.Core;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
-using Castle.Components.DictionaryAdapter;
-using System.Collections.Generic;
+using Azure.Identity;
+using Azure.ResourceManager;
+using Azure.ResourceManager.Storage;
+using Azure.ResourceManager.Authorization.Models;
+using Azure.ResourceManager.Authorization;
+using Azure.ResourceManager.AppService;
 
 namespace FileTransferService.Functions
 {
@@ -36,7 +41,8 @@ namespace FileTransferService.Functions
             string srcContainerSas = _configuration["UploadCleanFilesContainerSasToken"];
 
             int destBlobNameStartIndex = 37;
-            string destBlobName = blobName.Substring(destBlobNameStartIndex);
+            string destBlobName = blobName.Substring(destBlobNameStartIndex);           
+            string destBasePath = $"https://{destAccountName}.{baseStoragePath}";
 
             string srcPath = $"https://{srcAccountName}.{baseStoragePath}/{srcContainer}/{blobName}";
 
@@ -49,22 +55,56 @@ namespace FileTransferService.Functions
             BlobClient srcClient = new BlobClient(srcUri, srcCredential);
             var metadata = srcClient.GetProperties().Value.Metadata;
 
-            string destBasePath = $"https://{destAccountName}.{baseStoragePath}";
-
             if(metadata != null)
             {
-                if(!String.IsNullOrEmpty(metadata["userprincipalname"]))
+                string userPrincipalName;
+                if(metadata.TryGetValue("userprincipalname", out userPrincipalName))
                 {
-                    destContainer = metadata["userprincipalname"];
+                    destContainer = userPrincipalName;
+                    destContainer = destContainer.Replace(".", "-");
+                    destContainer = destContainer.Replace("@", "-");
+
                     BlobContainerClient destContainerClient = new BlobContainerClient(
                         new Uri($"{destBasePath}/{destContainer}"),
                         destCredential
                     );
                     destContainerClient.CreateIfNotExists();
+                    
+                    string userId;
+                    if(metadata.TryGetValue("userid", out userId)) 
+                    {
+                        string subscriptionId = "b2d15857-1062-49c1-afd3-82c1079dce10";
+                        string contributorRoleDefinitionId = "b24988ac-6180-42a0-ab88-20f7382dd24c";
+                        string resourceGroupName = "rg-fts-dev-dest";
+
+                        DefaultAzureCredential credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { 
+                                AuthorityHost = AzureAuthorityHosts.AzureGovernment
+                            });
+                        
+                        ArmClient armClient = new ArmClient(credential, 
+                            subscriptionId, 
+                            new ArmClientOptions { 
+                                Environment = ArmEnvironment.AzureGovernment 
+                            });
+
+                        ResourceIdentifier blobContainerResourceIdentifier = BlobContainerResource.
+                                                                                CreateResourceIdentifier(subscriptionId, 
+                                                                                                        resourceGroupName, 
+                                                                                                        destAccountName, 
+                                                                                                        destContainer);
+                        
+                        ResourceIdentifier roleDefinitionResourceId = new ResourceIdentifier($"/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{contributorRoleDefinitionId}");
+                        RoleAssignmentCreateOrUpdateContent roleAssignmentCreateOrUpdateContent = new RoleAssignmentCreateOrUpdateContent(roleDefinitionResourceId, Guid.Parse(userId));
+                        string roleAssignmentName = Guid.NewGuid().ToString();
+
+                        var blobContainerResource = armClient.GetBlobContainerResource(blobContainerResourceIdentifier);                     
+                        blobContainerResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, roleAssignmentName, roleAssignmentCreateOrUpdateContent);
+                    }
                 }
             }
 
             string destPath = $"{destBasePath}/{destContainer}/{destBlobName}";
+
             Uri destUri = new Uri(destPath);
 
             BlobClient destClient = new BlobClient(destUri, destCredential);
