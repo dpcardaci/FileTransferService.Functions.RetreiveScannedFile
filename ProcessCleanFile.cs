@@ -14,6 +14,8 @@ using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Authorization.Models;
 using Azure.ResourceManager.Authorization;
 using Azure.ResourceManager.AppService;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace FileTransferService.Functions
 {
@@ -73,9 +75,9 @@ namespace FileTransferService.Functions
                     string userId;
                     if(metadata.TryGetValue("userid", out userId)) 
                     {
-                        string subscriptionId = "b2d15857-1062-49c1-afd3-82c1079dce10";
-                        string contributorRoleDefinitionId = "b24988ac-6180-42a0-ab88-20f7382dd24c";
-                        string resourceGroupName = "rg-fts-dev-dest";
+                        string subscriptionId = _configuration["SubscriptionId"];
+                        string retreiveUserRoleDefinitionId = _configuration["RetreiveUserRoleDefinitionId"];
+                        string resourceGroupName = _configuration["RetrieveResourceGroupName"];
 
                         DefaultAzureCredential credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { 
                                 AuthorityHost = AzureAuthorityHosts.AzureGovernment
@@ -93,12 +95,21 @@ namespace FileTransferService.Functions
                                                                                                         destAccountName, 
                                                                                                         destContainer);
                         
-                        ResourceIdentifier roleDefinitionResourceId = new ResourceIdentifier($"/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{contributorRoleDefinitionId}");
+                        ResourceIdentifier roleDefinitionResourceId = new ResourceIdentifier($"/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{retreiveUserRoleDefinitionId}");
                         RoleAssignmentCreateOrUpdateContent roleAssignmentCreateOrUpdateContent = new RoleAssignmentCreateOrUpdateContent(roleDefinitionResourceId, Guid.Parse(userId));
                         string roleAssignmentName = Guid.NewGuid().ToString();
 
-                        var blobContainerResource = armClient.GetBlobContainerResource(blobContainerResourceIdentifier);                     
-                        blobContainerResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, roleAssignmentName, roleAssignmentCreateOrUpdateContent);
+                        var blobContainerResource = armClient.GetBlobContainerResource(blobContainerResourceIdentifier);
+                        blobContainerResource = blobContainerResource.Get();
+
+                        var roleAssignments =  blobContainerResource.GetRoleAssignments().GetAll($"principalId eq '{userId}'");
+
+                        if(!roleAssignments.Any(a => a.Data.RoleDefinitionId.ToString().Substring(a.Data.RoleDefinitionId.ToString().LastIndexOf("/") +1) == retreiveUserRoleDefinitionId
+                                                && a.Data.Scope == blobContainerResource.Id))
+                        {
+                            blobContainerResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, roleAssignmentName, roleAssignmentCreateOrUpdateContent);
+                        }
+                        
                     }
                 }
             }
