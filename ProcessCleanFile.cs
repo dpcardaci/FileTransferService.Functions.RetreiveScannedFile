@@ -77,6 +77,7 @@ namespace FileTransferService.Functions
                     {
                         string subscriptionId = _configuration["SubscriptionId"];
                         string retreiveUserRoleDefinitionId = _configuration["RetreiveUserRoleDefinitionId"];
+                        string readUserRoleDefinitionId = "c12c1c16-33a1-487b-954d-41c89c60f349";
                         string resourceGroupName = _configuration["RetrieveResourceGroupName"];
 
                         DefaultAzureCredential credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { 
@@ -89,25 +90,43 @@ namespace FileTransferService.Functions
                                 Environment = ArmEnvironment.AzureGovernment 
                             });
 
+                        ResourceIdentifier storageAccountResourceIdentifier = StorageAccountResource.
+                                                                                CreateResourceIdentifier(subscriptionId, 
+                                                                                                        resourceGroupName, 
+                                                                                                        destAccountName);
+
                         ResourceIdentifier blobContainerResourceIdentifier = BlobContainerResource.
                                                                                 CreateResourceIdentifier(subscriptionId, 
                                                                                                         resourceGroupName, 
                                                                                                         destAccountName, 
                                                                                                         destContainer);
+
+                        ResourceIdentifier readUserRoleDefinitionResourceId = new ResourceIdentifier($"/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{readUserRoleDefinitionId}");
+                        RoleAssignmentCreateOrUpdateContent readUserRoleAssignmentCreateOrUpdateContent = new RoleAssignmentCreateOrUpdateContent(readUserRoleDefinitionResourceId, Guid.Parse(userId));
+                        string readUserRleAssignmentName = Guid.NewGuid().ToString();                                                                                
                         
-                        ResourceIdentifier roleDefinitionResourceId = new ResourceIdentifier($"/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{retreiveUserRoleDefinitionId}");
-                        RoleAssignmentCreateOrUpdateContent roleAssignmentCreateOrUpdateContent = new RoleAssignmentCreateOrUpdateContent(roleDefinitionResourceId, Guid.Parse(userId));
-                        string roleAssignmentName = Guid.NewGuid().ToString();
+                        ResourceIdentifier retreiveUserRoleDefinitionResourceId = new ResourceIdentifier($"/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{retreiveUserRoleDefinitionId}");
+                        RoleAssignmentCreateOrUpdateContent retreiveUserRoleAssignmentCreateOrUpdateContent = new RoleAssignmentCreateOrUpdateContent(retreiveUserRoleDefinitionResourceId, Guid.Parse(userId));
+                        string retreiveUserRleAssignmentName = Guid.NewGuid().ToString();
+
+                        var storageAccountResource = armClient.GetStorageAccountResource(storageAccountResourceIdentifier);
+                        storageAccountResource = storageAccountResource.Get();
 
                         var blobContainerResource = armClient.GetBlobContainerResource(blobContainerResourceIdentifier);
                         blobContainerResource = blobContainerResource.Get();
 
-                        var roleAssignments =  blobContainerResource.GetRoleAssignments().GetAll($"principalId eq '{userId}'");
+                        var storageAccountRoleAssignments =  storageAccountResource.GetRoleAssignments().GetAll($"principalId eq '{userId}'");
+                        if(!storageAccountRoleAssignments.Any(a => a.Data.RoleDefinitionId.ToString().Substring(a.Data.RoleDefinitionId.ToString().LastIndexOf("/") +1) == readUserRoleDefinitionId
+                                                && a.Data.Scope == storageAccountResource.Id))
+                        {
+                            storageAccountResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, readUserRleAssignmentName, readUserRoleAssignmentCreateOrUpdateContent);
+                        }
 
-                        if(!roleAssignments.Any(a => a.Data.RoleDefinitionId.ToString().Substring(a.Data.RoleDefinitionId.ToString().LastIndexOf("/") +1) == retreiveUserRoleDefinitionId
+                        var containerRoleAssignments =  blobContainerResource.GetRoleAssignments().GetAll($"principalId eq '{userId}'");
+                        if(!containerRoleAssignments.Any(a => a.Data.RoleDefinitionId.ToString().Substring(a.Data.RoleDefinitionId.ToString().LastIndexOf("/") +1) == retreiveUserRoleDefinitionId
                                                 && a.Data.Scope == blobContainerResource.Id))
                         {
-                            blobContainerResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, roleAssignmentName, roleAssignmentCreateOrUpdateContent);
+                            blobContainerResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, retreiveUserRleAssignmentName, retreiveUserRoleAssignmentCreateOrUpdateContent);
                         }
                         
                     }
