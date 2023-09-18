@@ -77,7 +77,7 @@ namespace FileTransferService.Functions
                     {
                         string subscriptionId = _configuration["SubscriptionId"];
                         string retreiveUserRoleDefinitionId = _configuration["RetreiveUserRoleDefinitionId"];
-                        string readUserRoleDefinitionId = "c12c1c16-33a1-487b-954d-41c89c60f349";
+                        string readUserRoleDefinitionId = _configuration["ReadUserRoleDefinitionId"];
                         string resourceGroupName = _configuration["RetrieveResourceGroupName"];
 
                         DefaultAzureCredential credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions { 
