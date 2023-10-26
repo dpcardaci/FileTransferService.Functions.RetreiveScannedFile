@@ -65,6 +65,7 @@ namespace FileTransferService.Functions
                     destContainer = userPrincipalName;
                     destContainer = destContainer.Replace(".", "-");
                     destContainer = destContainer.Replace("@", "-");
+                    destContainer = destContainer.ToLower();
 
                     BlobContainerClient destContainerClient = new BlobContainerClient(
                         new Uri($"{destBasePath}/{destContainer}"),
@@ -107,7 +108,7 @@ namespace FileTransferService.Functions
                         
                         ResourceIdentifier retreiveUserRoleDefinitionResourceId = new ResourceIdentifier($"/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/{retreiveUserRoleDefinitionId}");
                         RoleAssignmentCreateOrUpdateContent retreiveUserRoleAssignmentCreateOrUpdateContent = new RoleAssignmentCreateOrUpdateContent(retreiveUserRoleDefinitionResourceId, Guid.Parse(userId));
-                        string retreiveUserRleAssignmentName = Guid.NewGuid().ToString();
+                        string retreiveUserRoleAssignmentName = Guid.NewGuid().ToString();
 
                         var storageAccountResource = armClient.GetStorageAccountResource(storageAccountResourceIdentifier);
                         storageAccountResource = storageAccountResource.Get();
@@ -126,7 +127,7 @@ namespace FileTransferService.Functions
                         if(!containerRoleAssignments.Any(a => a.Data.RoleDefinitionId.ToString().Substring(a.Data.RoleDefinitionId.ToString().LastIndexOf("/") +1) == retreiveUserRoleDefinitionId
                                                 && a.Data.Scope == blobContainerResource.Id))
                         {
-                            blobContainerResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, retreiveUserRleAssignmentName, retreiveUserRoleAssignmentCreateOrUpdateContent);
+                            blobContainerResource.GetRoleAssignments().CreateOrUpdate(WaitUntil.Completed, retreiveUserRoleAssignmentName, retreiveUserRoleAssignmentCreateOrUpdateContent);
                         }
                         
                     }
