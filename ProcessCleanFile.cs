@@ -35,7 +35,7 @@ namespace FileTransferService.Functions
         {
             try
             {
-                if(blobName == "__TESTING_FTS_TRANSFER_ERROR__.txt") { throw new Exception("Testing FTS Transfer Error"); }
+                
 
                 string baseStoragePath = "blob.core.usgovcloudapi.net";
 
@@ -51,6 +51,7 @@ namespace FileTransferService.Functions
                 int destBlobNameStartIndex = 37;
                 string destBlobName = blobName.Substring(destBlobNameStartIndex);
                 string destBasePath = $"https://{destAccountName}.{baseStoragePath}";
+                if (destBlobName == "__TESTING_FTS_TRANSFER_ERROR__.txt") { throw new Exception("Testing FTS Transfer Error"); }
 
                 string srcPath = $"https://{srcAccountName}.{baseStoragePath}/{srcContainer}/{blobName}";
 
@@ -59,7 +60,7 @@ namespace FileTransferService.Functions
 
                 AzureSasCredential destCredential = new AzureSasCredential(destAccountSas);
                 AzureSasCredential srcCredential = new AzureSasCredential(srcAccountSas);
-
+                            
                 BlobClient srcClient = new BlobClient(srcUri, srcCredential);
                 var metadata = srcClient.GetProperties().Value.Metadata;
                 string userPrincipalName;
