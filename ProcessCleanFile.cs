@@ -202,12 +202,15 @@ namespace FileTransferService.Functions
                 BlobClient srcClient = new BlobClient(srcUri, srcCredential);
                 var metadata = srcClient.GetProperties().Value.Metadata;
 
+                int destBlobNameStartIndex = 37;
+                string destBlobName = blobName.Substring(destBlobNameStartIndex);
+
                 TransferError transferError = new TransferError
                 {
                     TransferId = Guid.Parse(metadata["transferid"]),
                     OriginatingUserPrincipalName = metadata["userprincipalname"],
                     OriginationDateTime = DateTime.Parse(metadata["originationdatetime"]),
-                    FileName = blobName,
+                    FileName = destBlobName,
                     Message = ex.Message
                 };               
 
