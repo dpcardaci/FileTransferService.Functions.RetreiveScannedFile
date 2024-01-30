@@ -215,6 +215,7 @@ namespace FileTransferService.Functions
                 {
                     TransferId = Guid.Parse(metadata["transferid"]),
                     OriginatingUserPrincipalName = metadata["userprincipalname"],
+                    OnBehalfOfUserPrincipalName = metadata"onbehalfofuserprincipalname"
                     OriginationDateTime = DateTime.Parse(metadata["originationdatetime"]),
                     FileName = destBlobName,
                     Message = ex.Message
