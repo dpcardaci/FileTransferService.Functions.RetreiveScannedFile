@@ -70,12 +70,18 @@ namespace FileTransferService.Functions
                     if(metadata.TryGetValue("onbehalfofuserprincipalname", out userPrincipalName) 
                         && metadata.TryGetValue("onbehalfofuserid", out userId))
                     {
-                        CreateUserContainer(userPrincipalName, userId);
-                    }
-                    else if (metadata.TryGetValue("userprincipalname", out userPrincipalName) 
-                        && metadata.TryGetValue("userid", out userId))
-                    {
-                        CreateUserContainer(userPrincipalName, userId);
+                        if( !String.IsNullOrEmpty(userPrincipalName) && !String.IsNullOrEmpty(userId))
+                        {
+                            CreateUserContainer(userPrincipalName, userId);
+                        }
+                        else
+                        {
+                            if (metadata.TryGetValue("userprincipalname", out userPrincipalName)
+                                && metadata.TryGetValue("userid", out userId))
+                            {
+                                CreateUserContainer(userPrincipalName, userId);
+                            }
+                        }     
                     }
                 }
 
