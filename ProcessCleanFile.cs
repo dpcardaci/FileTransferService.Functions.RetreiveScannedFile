@@ -88,6 +88,7 @@ namespace FileTransferService.Functions
                 void CreateUserContainer(string userPrincipalName, string userId)
                 {
                     destContainer = userPrincipalName;
+                    destContainer = destContainer.Replace(" ", "-");
                     destContainer = destContainer.Replace(".", "-");
                     destContainer = destContainer.Replace("@", "-");
                     destContainer = destContainer.ToLower();
